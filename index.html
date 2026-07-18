@@ -1,1 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hex Dominion</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@500&display=swap');
 
+  :root{
+    --parchment: #EDE0C8;
+    --parchment-dark: #DCC9A3;
+    --ink: #2B2620;
+    --crimson: #8C2F2F;
+    --forest: #3E5C42;
+    --royal: #2F4A6B;
+    --gold: #B8862E;
+    --neutral-fill: #B9AB8C;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--parchment);
+    color: var(--ink);
+    font-family: 'Crimson Text', serif;
+    min-height: 100%;
+  }
+
+  body {
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(139,47,47,0.05) 0%, transparent 40%),
+      radial-gradient(circle at 80% 80%, rgba(47,74,107,0.05) 0%, transparent 40%);
+  }
+
+  h1, h2, h3, .display {
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.03em;
+  }
+
+  .mono { font-family: 'JetBrains Mono', monospace; letter-spacing: 0.06em; }
+
+  #app {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 18px 60px;
+  }
+
+  /* ---------- Header / Seal ---------- */
+  .seal-header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .seal-header .crest {
+    font-size: 40px;
+    display: inline-block;
+    margin-bottom: 4px;
+  }
+  .seal-header h1 {
+    font-size: 32px;
+    margin: 0;
+    color: var(--ink);
+  }
+  .seal-header .subtitle {
+    font-style: italic;
+    color: #6b5f4a;
+    font-size: 15px;
+    margin-top: 4px;
+  }
+
+  /* ---------- Panels ---------- */
+  .panel {
+    background: rgba(255,252,244,0.55);
+    border: 1px solid #b8a67d;
+    border-radius: 3px;
+    padding: 22px 26px;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.4) inset, 0 6px 18px rgba(43,38,32,0.08);
+  }
+
+  .lobby-wrap {
+    max-width: 460px;
+    margin: 40px auto;
+  }
+
+  .field-label {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6b5f4a;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  input[type=text] {
+    width: 100%;
+    padding: 10px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    letter-spacing: 0.08em;
+    border: 1px solid #a6906a;
+    border-radius: 2px;
+    background: #FBF6EA;
+    color: var(--ink);
+    margin-bottom: 16px;
+  }
+  input[type=text]:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+  input[type=text].code-input { text-transform: uppercase; text-align: center; font-size: 22px; }
+
+  button {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    letter-spacing: 0.05em;
+    padding: 11px 20px;
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: var(--parchment);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: transform 0.08s ease, background 0.15s ease;
+  }
+  button:hover { background: #46392c; }
+  button:active { transform: translateY(1px); }
+  button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.secondary {
+    background: transparent;
+    color: var(--ink);
+  }
+  button.secondary:hover { background: rgba(43,38,32,0.08); }
+  button.full { width: 100%; }
+  button.small { padding: 6px 12px; font-size: 12px; }
+
+  .color-pick { display: flex; gap: 10px; margin-bottom: 18px; }
+  .swatch {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+  }
+  .swatch.selected { border-color: var(--ink); box-shadow: 0 0 0 2px var(--parchment), 0 0 0 4px var(--ink); }
+
+  .divider {
+    display: flex; align-items: center; gap: 12px;
+    margin: 22px 0; color: #8a7c5f; font-size: 13px; font-style: italic;
+  }
+  .divider::before, .divider::after {
+    content: ""; flex: 1; height: 1px; background: #b8a67d;
+  }
+
+  .error-text { color: var(--crimson); font-size: 14px; margin: -8px 0 12px; }
+
+  /* ---------- Lobby room ---------- */
+  .room-code-display {
+    text-align: center; margin-bottom: 20px;
+  }
+  .room-code-display .code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 34px;
+    letter-spacing: 0.18em;
+    background: #FBF6EA;
+    border: 1px dashed var(--gold);
+    padding: 10px 22px;
+    display: inline-block;
+    border-radius: 3px;
+    margin-top: 6px;
+  }
+  .player-roster { list-style: none; padding: 0; margin: 18px 0; }
+  .player-roster li {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 4px; border-bottom: 1px solid #d8c9a3;
+    font-size: 16px;
+  }
+  .dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ---------- Game layout ---------- */
+  .game-wrap {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 20px;
+  }
+  @media (max-width: 860px) {
+    .game-wrap { grid-template-columns: 1fr; }
+  }
+
+  .map-panel { padding: 16px; }
+  .map-panel svg { width: 100%; height: auto; display: block; }
+
+  hexagon, .hex { cursor: pointer; }
+  .hex-troops {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    pointer-events: none;
+  }
+
+  .side-panel { display: flex; flex-direction: column; gap: 16px; }
+  .turn-banner {
+    padding: 14px 18px;
+    text-align: center;
+  }
+  .turn-banner .who { font-size: 18px; margin-bottom: 2px; }
+  .turn-banner .phase { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: #6b5f4a; }
+
+  .roster-card { padding: 14px 18px; }
+  .roster-card h3 { margin: 0 0 10px; font-size: 15px; }
+  .roster-row {
+    display: flex; align-items: center; gap: 8px; font-size: 14px; padding: 5px 0;
+  }
+  .roster-row.eliminated { opacity: 0.4; text-decoration: line-through; }
+  .roster-row .name { flex: 1; }
+  .roster-row .stat { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .active-marker { font-size: 12px; color: var(--gold); }
+
+  .action-card { padding: 14px 18px; }
+  .action-card h3 { margin: 0 0 8px; font-size: 15px; }
+  .action-card p { font-size: 14px; margin: 4px 0 12px; color: #4a4030; }
+  .action-buttons { display: flex; flex-direction: column; gap: 8px; }
+
+  .log-card { padding: 14px 18px; max-height: 220px; overflow-y: auto; }
+  .log-card h3 { margin: 0 0 8px; font-size: 15px; }
+  .log-entry { font-size: 12.5px; padding: 3px 0; border-bottom: 1px dotted #d0bf95; color: #4a4030; }
+
+  .crown { font-size: 10px; }
+
+  .end-screen { text-align: center; padding: 40px 20px; }
+  .end-screen .crest { font-size: 46px; }
+  .end-screen h2 { font-size: 28px; margin: 8px 0 4px; }
+
+  .waiting-msg { text-align: center; padding: 30px; font-style: italic; color: #6b5f4a; }
+
+  ::selection { background: var(--gold); color: white; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+
+  // ================= SUPABASE CONNECTION =================
+  const SUPABASE_URL = 'https://yuvpcfzawiwmlwszcdsw.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_BJukDSVY2TCYqXR2YWINYg_thYr2wTi';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // ================= CONSTANTS =================
+  const PLAYER_STYLES = [
+    { key:'crimson', color:'#8C2F2F', name:'House Crimson', sigil:'⚔' },
+    { key:'forest',  color:'#3E5C42', name:'House Verdant', sigil:'⚜' },
+    { key:'royal',   color:'#2F4A6B', name:'House Azure',   sigil:'♛' },
+    { key:'gold',    color:'#B8862E', name:'House Solar',   sigil:'✦' }
+  ];
+  const RADIUS = 3;
+  const HEX_SIZE = 34;
+  const MAX_ROUNDS = 40;
+
+  // Corner hex coordinates (axial) at given radius, index 0..5
+  function cornerCoords(R){
+    return [ [R,0], [0,R], [-R,R], [-R,0], [0,-R], [R,-R] ];
+  }
+  // for N players, pick spread indices among the 6 corners
+  const CAPITAL_INDEX_MAP = { 2:[0,3], 3:[0,2,4], 4:[0,1,3,4] };
+
+  const DIRECTIONS = [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
+
+  function hexKey(q,r){ return q+','+r; }
+
+  function buildMap(R){
+    const hexes = {};
+    for(let q=-R;q<=R;q++){
+      for(let r=-R;r<=R;r++){
+        const s = -q-r;
+        if (Math.abs(s) <= R){
+          hexes[hexKey(q,r)] = { q, r, owner: null, troops: 0, capital: false };
+        }
+      }
+    }
+    return hexes;
+  }
+
+  function neighbors(q,r){
+    return DIRECTIONS.map(d => [q+d[0], r+d[1]]).filter(([nq,nr]) =>
+      Math.abs(nq) <= RADIUS && Math.abs(nr) <= RADIUS && Math.abs(-nq-nr) <= RADIUS
+    );
+  }
+
+  function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+
+  function uid(){ return Math.random().toString(36).slice(2,10); }
+
+  // ================= STATE =================
+  let me = { id: uid(), name: '', styleKey: null };
+  let roomCode = null; // the room code — also what players share to join
+  let room = null; // full shared room object
+  let selectedAttackOrigin = null; // hexKey string during attack phase
+  let pendingAttackTarget = null; // hexKey once a target is chosen, awaiting commit amount + confirmation
+  let commitAmount = 0; // troops the player has chosen to send on the pending attack
+  let joinError = '';
+  let view = 'landing'; // landing | lobby | game
+
+  function genRoomCode(){
+    // avoids visually-ambiguous characters (0/O, 1/I)
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    let c = '';
+    for(let i=0;i<5;i++) c += chars[randInt(0,chars.length-1)];
+    return c;
+  }
+
+  // ================= STORAGE (Supabase table: hex_rooms, columns: code text, state jsonb) =================
+  async function createRoomBlob(data){
+    for (let attempt = 0; attempt < 5; attempt++){
+      const code = genRoomCode();
+      const { data: row, error } = await supabase
+        .from('hex_rooms')
+        .insert({ code, state: data })
+        .select()
+        .single();
+      if (!error) return code;
+      // if it was a uniqueness conflict on code, just try a fresh code
+      if (error.code !== '23505') throw new Error(error.message || 'Could not create room');
+    }
+    throw new Error('Could not generate a free room code — please try again.');
+  }
+
+  async function loadRoom(code){
+    try{
+      const { data, error } = await supabase
+        .from('hex_rooms')
+        .select('state')
+        .eq('code', code)
+        .maybeSingle();
+      if (error || !data) return null;
+      return data.state;
+    }catch(e){ return null; }
+  }
+  async function saveRoom(r){
+    try{
+      const { error } = await supabase
+        .from('hex_rooms')
+        .update({ state: r })
+        .eq('code', r.code);
+      return !error;
+    }catch(e){ console.error('save failed', e); return false; }
+  }
+
+  // ================= GAME SETUP =================
+  function initGame(r){
+    const map = buildMap(RADIUS);
+    const corners = cornerCoords(RADIUS);
+    const idxs = CAPITAL_INDEX_MAP[r.players.length] || CAPITAL_INDEX_MAP[4];
+
+    r.players.forEach((p, i) => {
+      const [cq, cr] = corners[idxs[i]];
+      const key = hexKey(cq,cr);
+      map[key].owner = p.id;
+      map[key].troops = 6;
+      map[key].capital = true;
+    });
+
+    // neutral garrisons
+    Object.values(map).forEach(h => {
+      if (!h.owner) h.troops = randInt(1,3);
+    });
+
+    r.map = map;
+    r.status = 'playing';
+    r.turnOrder = r.players.map(p=>p.id);
+    r.currentIndex = 0;
+    r.round = 1;
+    r.phase = 'reinforce';
+    r.reinforcePool = reinforcementsFor(r, r.turnOrder[0]);
+    r.log = [`The council convenes. ${r.players[0].name} of ${styleName(r.players[0].styleKey)} moves first.`];
+    r.winner = null;
+  }
+
+  function reinforcementsFor(r, playerId){
+    const count = Object.values(r.map).filter(h=>h.owner===playerId).length;
+    return Math.max(1, Math.floor(count/3));
+  }
+
+  function styleOf(key){ return PLAYER_STYLES.find(s=>s.key===key); }
+  function styleName(key){ const s = styleOf(key); return s ? s.name : ''; }
+  function playerById(r, id){ return r.players.find(p=>p.id===id); }
+
+  function activePlayers(r){
+    return r.turnOrder.filter(pid => Object.values(r.map).some(h=>h.owner===pid));
+  }
+
+  function nextTurn(r){
+    const active = activePlayers(r);
+    if (active.length <= 1){
+      r.status = 'ended';
+      r.winner = active[0] || null;
+      r.log.unshift(active[0] ? `${playerById(r,active[0]).name} stands alone. The realm is theirs.` : 'The realm lies in ruin.');
+      return;
+    }
+    let idx = r.currentIndex;
+    let tries = 0;
+    do{
+      idx = (idx+1) % r.turnOrder.length;
+      tries++;
+    } while(!active.includes(r.turnOrder[idx]) && tries < r.turnOrder.length+1);
+
+    if (idx <= r.currentIndex){
+      r.round += 1;
+      if (r.round > MAX_ROUNDS){
+        // highest territory wins
+        let best = null, bestCount = -1;
+        active.forEach(pid=>{
+          const c = Object.values(r.map).filter(h=>h.owner===pid).length;
+          if (c>bestCount){ bestCount=c; best=pid; }
+        });
+        r.status = 'ended';
+        r.winner = best;
+        r.log.unshift(`The ${MAX_ROUNDS}th round ends. ${playerById(r,best).name} claims the most land and the crown.`);
+        return;
+      }
+    }
+    r.currentIndex = idx;
+    r.phase = 'reinforce';
+    r.reinforcePool = reinforcementsFor(r, r.turnOrder[idx]);
+    r.log.unshift(`${playerById(r, r.turnOrder[idx]).name}'s banners rise for round ${r.round}.`);
+  }
+
+  // ================= COMBAT (deterministic — no randomness) =================
+  function resolveAttack(r, fromKey, toKey, committed){
+    const from = r.map[fromKey];
+    const to = r.map[toKey];
+    const capitalBonus = to.capital ? 1 : 0;
+    const defenseStrength = to.troops + capitalBonus;
+
+    const attacker = playerById(r, from.owner);
+    const defenderName = to.owner ? playerById(r,to.owner).name : 'the wilds';
+
+    if (committed > defenseStrength){
+      const survivors = committed - defenseStrength;
+      to.owner = from.owner;
+      to.troops = survivors;
+      to.capital = false; // capturing a capital ends its special status
+      from.troops -= committed;
+      r.log.unshift(`${attacker.name} storms (${to.q},${to.r}) with ${committed} against ${defenderName}'s ${defenseStrength} — captured, ${survivors} troops hold it now.`);
+    } else {
+      from.troops -= committed;
+      to.troops = Math.max(1, to.troops - committed);
+      r.log.unshift(`${attacker.name}'s ${committed} troops fail to break ${defenderName}'s ${defenseStrength} at (${to.q},${to.r}) — both sides take losses.`);
+    }
+  }
+
+  // ================= RENDER: LAYOUT MATH =================
+  function hexCenter(q,r){
+    const x = HEX_SIZE * Math.sqrt(3) * (q + r/2);
+    const y = HEX_SIZE * 1.5 * r;
+    return [x,y];
+  }
+  function hexPoints(cx,cy){
+    const pts = [];
+    for(let i=0;i<6;i++){
+      const angle = Math.PI/180 * (60*i - 30);
+      pts.push([cx+HEX_SIZE*Math.cos(angle), cy+HEX_SIZE*Math.sin(angle)]);
+    }
+    return pts.map(p=>p.join(',')).join(' ');
+  }
+
+  // ================= EVENT HANDLERS =================
+  window.__hd = {}; // namespace for inline handlers
+
+  window.__hd.setName = (v) => { me.name = v; };
+  window.__hd.pickStyle = (k) => { me.styleKey = k; render(); };
+
+  window.__hd.createRoom = async () => {
+    joinError = '';
+    if (!me.name.trim()) { joinError = 'Enter your name first.'; render(); return; }
+    if (!me.styleKey) { joinError = 'Choose a house banner.'; render(); return; }
+    const draft = {
+      hostId: me.id,
+      players: [{ id: me.id, name: me.name.trim(), styleKey: me.styleKey }],
+      status: 'lobby',
+      map: null, log: []
+    };
+    let id;
+    try{
+      id = await createRoomBlob(draft);
+    }catch(e){
+      joinError = 'Could not reach the game server: ' + (e && e.message ? e.message : 'unknown error') + '. Check your connection and try again.';
+      render();
+      return;
+    }
+    draft.code = id;
+    await saveRoom(draft); // store the id inside the blob too, so it's self-contained
+    roomCode = id;
+    room = draft;
+    view = 'lobby';
+    render();
+  };
+
+  window.__hd.setJoinCode = (v) => { window.__hd._joinCodeVal = v.toUpperCase().trim(); };
+
+  window.__hd.joinRoom = async () => {
+    joinError = '';
+    const code = (window.__hd._joinCodeVal || '').trim();
+    if (!me.name.trim()) { joinError = 'Enter your name first.'; render(); return; }
+    if (!me.styleKey) { joinError = 'Choose a house banner.'; render(); return; }
+    if (!code) { joinError = 'Enter a room code.'; render(); return; }
+    const r = await loadRoom(code);
+    if (!r) { joinError = 'No such room found — double check the code.'; render(); return; }
+    if (r.status !== 'lobby') { joinError = 'That campaign has already begun.'; render(); return; }
+    if (r.players.length >= 4) { joinError = 'That room is full.'; render(); return; }
+    if (r.players.some(p=>p.styleKey===me.styleKey)) { joinError = 'That house banner is taken — pick another.'; render(); return; }
+    r.players.push({ id: me.id, name: me.name.trim(), styleKey: me.styleKey });
+    const ok = await saveRoom(r);
+    if (!ok) { joinError = 'Could not reach the room server — check your connection and try again.'; render(); return; }
+    roomCode = code;
+    room = r;
+    view = 'lobby';
+    render();
+  };
+
+  window.__hd.startGame = async () => {
+    const fresh = await loadRoom(roomCode);
+    if (!fresh || fresh.players.length < 2) return;
+    initGame(fresh);
+    view = 'game';
+    room = fresh;
+    await saveRoom(fresh);
+    render();
+  };
+
+  window.__hd.refreshLobby = async () => {
+    const fresh = await loadRoom(roomCode);
+    if (fresh){ room = fresh; if (fresh.status === 'playing') view = 'game'; render(); }
+  };
+
+  function isMyTurn(){
+    return room && room.status==='playing' && room.turnOrder[room.currentIndex] === me.id;
+  }
+
+  window.__hd.placeReinforcement = async (key) => {
+    const fresh = await loadRoom(roomCode);
+    room = fresh;
+    if (!isMyTurn() || room.phase !== 'reinforce' || room.reinforcePool <= 0) { render(); return; }
+    const h = room.map[key];
+    if (h.owner !== me.id) { render(); return; }
+    h.troops += 1;
+    room.reinforcePool -= 1;
+    await saveRoom(room);
+    render();
+  };
+
+  window.__hd.finishReinforcing = async () => {
+    const fresh = await loadRoom(roomCode);
+    room = fresh;
+    if (!isMyTurn() || room.reinforcePool > 0) { render(); return; }
+    room.phase = 'attack';
+    await saveRoom(room);
+    render();
+  };
+
+  window.__hd.selectHexForAttack = async (key) => {
+    if (!isMyTurn() || room.phase !== 'attack') return;
+    if (pendingAttackTarget){ return; } // a commit decision is already in progress — must confirm or cancel first
+    const h = room.map[key];
+    if (selectedAttackOrigin === null){
+      if (h.owner === me.id && h.troops > 1){
+        selectedAttackOrigin = key;
+        render();
+      }
+      return;
+    }
+    if (selectedAttackOrigin === key){
+      selectedAttackOrigin = null; render(); return;
+    }
+    const origin = room.map[selectedAttackOrigin];
+    const isAdjacent = neighbors(origin.q, origin.r).some(([nq,nr]) => hexKey(nq,nr) === key);
+    if (!isAdjacent){
+      if (h.owner === me.id && h.troops > 1){ selectedAttackOrigin = key; render(); }
+      return;
+    }
+    if (h.owner === me.id) { selectedAttackOrigin = key; render(); return; } // reselect origin
+
+    // valid adjacent enemy/neutral hex — open the commit-amount step
+    pendingAttackTarget = key;
+    commitAmount = Math.max(1, origin.troops - 1); // default: send everything but 1
+    render();
+  };
+
+  window.__hd.adjustCommit = (delta) => {
+    if (!selectedAttackOrigin) return;
+    const origin = room.map[selectedAttackOrigin];
+    const max = Math.max(1, origin.troops - 1);
+    commitAmount = Math.min(max, Math.max(1, commitAmount + delta));
+    render();
+  };
+
+  window.__hd.cancelAttackSelection = () => {
+    pendingAttackTarget = null;
+    commitAmount = 0;
+    render();
+  };
+
+  window.__hd.confirmAttack = async () => {
+    if (!selectedAttackOrigin || !pendingAttackTarget) return;
+    const fresh = await loadRoom(roomCode);
+    room = fresh;
+    if (!isMyTurn() || room.phase !== 'attack') { selectedAttackOrigin = null; pendingAttackTarget = null; render(); return; }
+    const freshOrigin = room.map[selectedAttackOrigin];
+    if (!freshOrigin || freshOrigin.owner !== me.id || freshOrigin.troops <= 1) {
+      selectedAttackOrigin = null; pendingAttackTarget = null; render(); return;
+    }
+    const maxCommit = freshOrigin.troops - 1;
+    const committed = Math.min(commitAmount, maxCommit);
+    resolveAttack(room, selectedAttackOrigin, pendingAttackTarget, committed);
+    selectedAttackOrigin = null;
+    pendingAttackTarget = null;
+    commitAmount = 0;
+    await saveRoom(room);
+    render();
+  };
+
+  window.__hd.endTurn = async () => {
+    const fresh = await loadRoom(roomCode);
+    room = fresh;
+    if (!isMyTurn()) { render(); return; }
+    selectedAttackOrigin = null;
+    pendingAttackTarget = null;
+    commitAmount = 0;
+    nextTurn(room);
+    await saveRoom(room);
+    render();
+  };
+
+  window.__hd.copyCode = () => {
+    if (roomCode) navigator.clipboard && navigator.clipboard.writeText(roomCode);
+  };
+
+  // ================= RENDER =================
+  function el(html){ const d = document.createElement('div'); d.innerHTML = html; return d.firstElementChild; }
+
+  function renderLanding(){
+    const swatches = PLAYER_STYLES.map(s => `
+      <div class="swatch ${me.styleKey===s.key?'selected':''}" style="background:${s.color}" title="${s.name}" onclick="__hd.pickStyle('${s.key}')"></div>
+    `).join('');
+
+    return `
+      <div class="seal-header">
+        <div class="crest">⚔</div>
+        <h1>Hex Dominion</h1>
+        <div class="subtitle">A campaign of banners, garrisons, and borders drawn in ink</div>
+      </div>
+      <div class="lobby-wrap panel">
+        <label class="field-label">Your name</label>
+        <input type="text" maxlength="18" oninput="__hd.setName(this.value)" placeholder="Lord Commander of..." value="${me.name}">
+
+        <label class="field-label">Choose your house banner</label>
+        <div class="color-pick">${swatches}</div>
+
+        ${joinError ? `<div class="error-text">${joinError}</div>` : ''}
+
+        <button class="full" onclick="__hd.createRoom()">Found a New Realm</button>
+
+        <div class="divider">or join an existing campaign</div>
+
+        <label class="field-label">Enter the room code your friend sent you</label>
+        <input type="text" class="code-input" maxlength="5" oninput="__hd.setJoinCode(this.value)" placeholder="ABCDE">
+        <button class="full secondary" onclick="__hd.joinRoom()">Join Campaign</button>
+      </div>
+    `;
+  }
+
+  function renderLobby(){
+    const roster = room.players.map(p => {
+      const s = styleOf(p.styleKey);
+      return `<li><span class="dot" style="background:${s.color}"></span> ${p.name} — <em>${s.name}</em> ${p.id===room.hostId ? ' <span class="mono" style="font-size:11px;color:#8a7c5f">(host)</span>':''}</li>`;
+    }).join('');
+
+    const isHost = room.hostId === me.id;
+    const canStart = room.players.length >= 2;
+
+    return `
+      <div class="lobby-wrap panel">
+        <div class="room-code-display">
+          <div class="field-label">Send this room code to your friends</div>
+          <div class="code mono" onclick="__hd.copyCode()" title="Click to copy">${room.code}</div>
+        </div>
+        <h3 style="margin-bottom:4px;">Gathered Houses (${room.players.length}/4)</h3>
+        <ul class="player-roster">${roster}</ul>
+        ${isHost
+          ? `<button class="full" ${canStart?'':'disabled'} onclick="__hd.startGame()">${canStart? 'Begin the Campaign' : 'Waiting for at least 2 houses...'}</button>`
+          : `<div class="waiting-msg">Waiting for the host to begin the campaign...</div>`
+        }
+        <button class="full secondary" style="margin-top:10px;" onclick="__hd.refreshLobby()">Refresh</button>
+      </div>
+    `;
+  }
+
+  function renderGame(){
+    if (room.status === 'ended'){
+      const winner = room.winner ? playerById(room, room.winner) : null;
+      const s = winner ? styleOf(winner.styleKey) : null;
+      return `
+        <div class="panel end-screen">
+          <div class="crest">${s ? s.sigil : '⚑'}</div>
+          <h2>${winner ? `${winner.name} of ${s.name} reigns victorious` : 'The realm falls to ruin'}</h2>
+          <p style="color:#6b5f4a;">The campaign concluded after ${room.round} rounds.</p>
+        </div>
+      `;
+    }
+
+    const hexes = Object.values(room.map);
+    const centers = hexes.map(h => ({ h, c: hexCenter(h.q,h.r) }));
+    const xs = centers.map(o=>o.c[0]), ys = centers.map(o=>o.c[1]);
+    const minX = Math.min(...xs)-HEX_SIZE-6, maxX = Math.max(...xs)+HEX_SIZE+6;
+    const minY = Math.min(...ys)-HEX_SIZE-6, maxY = Math.max(...ys)+HEX_SIZE+6;
+    const w = maxX-minX, h = maxY-minY;
+
+    const myTurn = isMyTurn();
+
+    const hexSvg = centers.map(({h,c}) => {
+      const [cx,cy] = c;
+      const pts = hexPoints(cx-minX, cy-minY);
+      let fill = 'var(--neutral-fill)';
+      let stroke = '#8a7c5f';
+      let strokeWidth = 1;
+      if (h.owner){
+        const s = styleOf(playerById(room,h.owner).styleKey);
+        fill = s.color;
+      }
+      const key = hexKey(h.q,h.r);
+      if (myTurn && room.phase==='attack' && selectedAttackOrigin===key){
+        stroke = '#F4E7C1'; strokeWidth = 4;
+      }
+      if (myTurn && room.phase==='attack' && pendingAttackTarget===key){
+        stroke = '#8C2F2F'; strokeWidth = 4;
+      }
+      let clickAttr = '';
+      if (myTurn && room.phase==='reinforce' && h.owner===me.id && room.reinforcePool>0){
+        clickAttr = `onclick="__hd.placeReinforcement('${key}')"`;
+      } else if (myTurn && room.phase==='attack' && !pendingAttackTarget){
+        clickAttr = `onclick="__hd.selectHexForAttack('${key}')"`;
+      }
+      const textColor = h.owner ? '#FBF6EA' : '#2B2620';
+      const crownIcon = h.capital ? `<text x="${cx-minX}" y="${cy-minY-13}" text-anchor="middle" font-size="13" class="crown">♛</text>` : '';
+      return `
+        <g class="hex" ${clickAttr}>
+          <polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" opacity="${h.owner?1:0.85}"/>
+          ${crownIcon}
+          <text x="${cx-minX}" y="${cy-minY+5}" text-anchor="middle" font-size="15" fill="${textColor}" class="hex-troops">${h.troops}</text>
+        </g>
+      `;
+    }).join('');
+
+    const roster = room.players.map(p => {
+      const s = styleOf(p.styleKey);
+      const count = hexes.filter(h=>h.owner===p.id).length;
+      const alive = count > 0;
+      const isCurrent = room.turnOrder[room.currentIndex] === p.id;
+      return `
+        <div class="roster-row ${alive?'':'eliminated'}">
+          <span class="dot" style="background:${s.color}"></span>
+          <span class="name">${p.name}${p.id===me.id?' (you)':''}</span>
+          <span class="stat">${count} hex</span>
+          ${isCurrent && alive ? '<span class="active-marker">●</span>' : ''}
+        </div>
+      `;
+    }).join('');
+
+    const currentPlayer = playerById(room, room.turnOrder[room.currentIndex]);
+    const logEntries = room.log.slice(0,12).map(l => `<div class="log-entry">${l}</div>`).join('');
+
+    let actionBlock = '';
+    if (myTurn && room.phase === 'reinforce'){
+      actionBlock = `
+        <div class="action-card panel">
+          <h3>Muster Reinforcements</h3>
+          <p>${room.reinforcePool} troop${room.reinforcePool===1?'':'s'} remaining to place. Click your own territory on the map to garrison it.</p>
+          <div class="action-buttons">
+            <button ${room.reinforcePool>0?'disabled':''} onclick="__hd.finishReinforcing()">Proceed to Attack Phase</button>
+          </div>
+        </div>
+      `;
+    } else if (myTurn && room.phase === 'attack'){
+      if (pendingAttackTarget){
+        const origin = room.map[selectedAttackOrigin];
+        const target = room.map[pendingAttackTarget];
+        const defenseStrength = target.troops + (target.capital ? 1 : 0);
+        const maxCommit = Math.max(1, origin.troops - 1);
+        const targetName = target.owner ? playerById(room, target.owner).name : 'the wilds';
+        actionBlock = `
+          <div class="action-card panel">
+            <h3>Commit Your Forces</h3>
+            <p>Attacking (${target.q},${target.r}), held by <strong>${targetName}</strong> — effective defense <strong>${defenseStrength}</strong>${target.capital ? ' (capital bonus included)' : ''}. You must commit <strong>more than ${defenseStrength}</strong> to capture it; committing less costs you both losses with no gain.</p>
+            <div style="display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:14px;">
+              <button class="small secondary" onclick="__hd.adjustCommit(-1)">−</button>
+              <span class="mono" style="font-size:20px;min-width:34px;text-align:center;">${commitAmount}</span>
+              <button class="small secondary" onclick="__hd.adjustCommit(1)">+</button>
+              <span style="font-size:12px;color:#8a7c5f;">/ ${maxCommit} available</span>
+            </div>
+            <div class="action-buttons">
+              <button onclick="__hd.confirmAttack()">Launch Attack</button>
+              <button class="secondary" onclick="__hd.cancelAttackSelection()">Cancel</button>
+            </div>
+          </div>
+        `;
+      } else {
+        actionBlock = `
+          <div class="action-card panel">
+            <h3>March on Your Foes</h3>
+            <p>${selectedAttackOrigin ? 'Now click an adjacent enemy or unclaimed hex to attack.' : 'Click one of your hexes (2+ troops) to select it, then click an adjacent hex to attack.'}</p>
+            <div class="action-buttons">
+              <button onclick="__hd.endTurn()">End Turn</button>
+            </div>
+          </div>
+        `;
+      }
+    } else {
+      actionBlock = `
+        <div class="action-card panel">
+          <p style="margin:0;">Awaiting ${currentPlayer.name}'s move...</p>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="game-wrap">
+        <div class="map-panel panel">
+          <svg viewBox="0 0 ${w} ${h}">${hexSvg}</svg>
+        </div>
+        <div class="side-panel">
+          <div class="turn-banner panel">
+            <div class="who display">${currentPlayer.name}${currentPlayer.id===me.id?' (You)':''}</div>
+            <div class="phase">Round ${room.round} — ${room.phase} phase</div>
+          </div>
+          <div class="roster-card panel">
+            <h3>Houses</h3>
+            ${roster}
+          </div>
+          ${actionBlock}
+          <div class="log-card panel">
+            <h3>Chronicle</h3>
+            ${logEntries}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function render(){
+    const app = document.getElementById('app');
+    if (view === 'landing'){
+      app.innerHTML = renderLanding();
+    } else if (view === 'lobby'){
+      app.innerHTML = `
+        <div class="seal-header">
+          <div class="crest">⚔</div>
+          <h1>Hex Dominion</h1>
+        </div>
+        ${renderLobby()}
+      `;
+    } else if (view === 'game'){
+      app.innerHTML = `
+        <div class="seal-header" style="margin-bottom:16px;">
+          <h1 style="font-size:22px;">Hex Dominion</h1>
+        </div>
+        ${renderGame()}
+      `;
+    }
+  }
+
+  render();
+  // Single poll loop covers both the lobby (watching for the host to start)
+  // and the game (watching for other players' moves).
+  setInterval(async ()=>{
+    if (!roomCode) return;
+    if (view === 'game'){
+      const fresh = await loadRoom(roomCode);
+      if (fresh) { room = fresh; render(); }
+    } else if (view === 'lobby'){
+      const fresh = await loadRoom(roomCode);
+      if (fresh){ room = fresh; if (fresh.status==='playing'){ view='game'; } render(); }
+    }
+  }, 1800);
+
+})();
+</script>
+</body>
+</html>
