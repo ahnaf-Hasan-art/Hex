@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hex Dominion</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@500&display=swap');
+
+  :root{
+    --parchment: #EDE0C8;
+    --parchment-dark: #DCC9A3;
+    --ink: #2B2620;
+    --crimson: #8C2F2F;
+    --forest: #3E5C42;
+    --royal: #2F4A6B;
+    --gold: #B8862E;
+    --iron: #6b7280;
+    --neutral-fill: #B9AB8C;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--parchment);
+    color: var(--ink);
+    font-family: 'Crimson Text', serif;
+    min-height: 100%;
+  }
+
+  body {
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(139,47,47,0.05) 0%, transparent 40%),
+      radial-gradient(circle at 80% 80%, rgba(47,74,107,0.05) 0%, transparent 40%);
+  }
+
+  h1, h2, h3, .display { font-family: 'Cinzel', serif; letter-spacing: 0.03em; }
+  .mono { font-family: 'JetBrains Mono', monospace; letter-spacing: 0.06em; }
+
+  #app { max-width: 1240px; margin: 0 auto; padding: 24px 18px 60px; }
+
+  .seal-header { text-align: center; margin-bottom: 28px; }
+  .seal-header .crest { font-size: 40px; display: inline-block; margin-bottom: 4px; }
+  .seal-header h1 { font-size: 32px; margin: 0; color: var(--ink); }
+  .seal-header .subtitle { font-style: italic; color: #6b5f4a; font-size: 15px; margin-top: 4px; }
+
+  .panel {
+    background: rgba(255,252,244,0.55);
+    border: 1px solid #b8a67d;
+    border-radius: 3px;
+    padding: 22px 26px;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.4) inset, 0 6px 18px rgba(43,38,32,0.08);
+  }
+
+  .lobby-wrap { max-width: 520px; margin: 40px auto; }
+
+  .field-label {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: #6b5f4a; margin-bottom: 6px; display: block;
+  }
+
+  input[type=text], input[type=number], select {
+    width: 100%; padding: 10px 12px;
+    font-family: 'JetBrains Mono', monospace; font-size: 16px; letter-spacing: 0.04em;
+    border: 1px solid #a6906a; border-radius: 2px;
+    background: #FBF6EA; color: var(--ink); margin-bottom: 12px;
+  }
+  input[type=number] { font-size: 14px; padding: 7px 8px; margin-bottom: 0; }
+  input:focus, select:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+  input[type=text].code-input { text-transform: uppercase; text-align: center; font-size: 22px; }
+
+  button {
+    font-family: 'Cinzel', serif; font-size: 14px; letter-spacing: 0.05em;
+    padding: 11px 20px; border: 1px solid var(--ink); background: var(--ink); color: var(--parchment);
+    border-radius: 2px; cursor: pointer; transition: transform 0.08s ease, background 0.15s ease;
+  }
+  button:hover { background: #46392c; }
+  button:active { transform: translateY(1px); }
+  button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.secondary { background: transparent; color: var(--ink); }
+  button.secondary:hover { background: rgba(43,38,32,0.08); }
+  button.full { width: 100%; }
+  button.small { padding: 6px 12px; font-size: 12px; }
+  button.tiny { padding: 4px 8px; font-size: 11px; }
+
+  .color-pick { display: flex; gap: 10px; margin-bottom: 18px; }
+  .swatch { width: 36px; height: 36px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+  .swatch.selected { border-color: var(--ink); box-shadow: 0 0 0 2px var(--parchment), 0 0 0 4px var(--ink); }
+
+  .divider { display: flex; align-items: center; gap: 12px; margin: 22px 0; color: #8a7c5f; font-size: 13px; font-style: italic; }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #b8a67d; }
+
+  .error-text { color: var(--crimson); font-size: 14px; margin: -8px 0 12px; }
+
+  .room-code-display { text-align: center; margin-bottom: 20px; }
+  .room-code-display .code {
+    font-family: 'JetBrains Mono', monospace; font-size: 34px; letter-spacing: 0.18em;
+    background: #FBF6EA; border: 1px dashed var(--gold); padding: 10px 22px;
+    display: inline-block; border-radius: 3px; margin-top: 6px;
+  }
+  .player-roster { list-style: none; padding: 0; margin: 18px 0; }
+  .player-roster li { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-bottom: 1px solid #d8c9a3; font-size: 16px; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+
+  details.settings-group { margin-bottom: 14px; border: 1px solid #cdb98c; border-radius: 3px; padding: 8px 12px; background: rgba(255,252,244,0.4); }
+  details.settings-group summary { cursor: pointer; font-family: 'Cinzel', serif; font-size: 14px; padding: 4px 0; }
+  .settings-row { display: grid; grid-template-columns: 1fr repeat(3, 64px); gap: 8px; align-items: center; margin: 6px 0; font-size: 13px; }
+  .settings-row.cost-row { grid-template-columns: 1fr 80px; }
+  .settings-row .col-head { font-size: 11px; color: #8a7c5f; text-align: center; }
+  .settings-note { font-size: 12px; color: #6b5f4a; font-style: italic; margin: 4px 0 10px; }
+
+  .game-wrap { display: grid; grid-template-columns: 1fr 320px; gap: 20px; }
+  @media (max-width: 900px) { .game-wrap { grid-template-columns: 1fr; } }
+
+  .map-panel { padding: 16px; }
+  .map-panel svg { width: 100%; height: auto; display: block; }
+  .hex { cursor: pointer; }
+  .hex-troops { font-family: 'JetBrains Mono', monospace; font-weight: 700; pointer-events: none; }
+  .hex-building { font-family: 'JetBrains Mono', monospace; font-weight: 700; pointer-events: none; }
+
+  .side-panel { display: flex; flex-direction: column; gap: 16px; }
+  .turn-banner { padding: 14px 18px; text-align: center; }
+  .turn-banner .who { font-size: 18px; margin-bottom: 2px; }
+  .turn-banner .phase { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: #6b5f4a; }
+  .resource-row { display: flex; justify-content: center; gap: 18px; margin-top: 8px; font-size: 14px; }
+  .resource-row span.mono { font-size: 15px; }
+
+  .roster-card { padding: 14px 18px; }
+  .roster-card h3 { margin: 0 0 10px; font-size: 15px; }
+  .roster-row { display: flex; align-items: center; gap: 8px; font-size: 14px; padding: 5px 0; }
+  .roster-row.eliminated { opacity: 0.4; text-decoration: line-through; }
+  .roster-row .name { flex: 1; }
+  .roster-row .stat { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .active-marker { font-size: 12px; color: var(--gold); }
+
+  .action-card { padding: 14px 18px; }
+  .action-card h3 { margin: 0 0 8px; font-size: 15px; }
+  .action-card p { font-size: 14px; margin: 4px 0 12px; color: #4a4030; }
+  .action-buttons { display: flex; flex-direction: column; gap: 8px; }
+  .mode-toggle { display: flex; gap: 8px; margin-bottom: 12px; }
+  .mode-toggle button { flex: 1; }
+  .mode-toggle button.active { background: var(--crimson); border-color: var(--crimson); }
+
+  .build-option { border: 1px solid #cdb98c; border-radius: 3px; padding: 10px; margin-bottom: 8px; }
+  .build-option .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .build-option .name { font-size: 13px; font-weight: 600; }
+  .build-option .cost { font-size: 12px; color: #6b5f4a; }
+
+  .log-card { padding: 14px 18px; max-height: 220px; overflow-y: auto; }
+  .log-card h3 { margin: 0 0 8px; font-size: 15px; }
+  .log-entry { font-size: 12.5px; padding: 3px 0; border-bottom: 1px dotted #d0bf95; color: #4a4030; }
+
+  .crown { font-size: 10px; }
+  .end-screen { text-align: center; padding: 40px 20px; }
+  .end-screen .crest { font-size: 46px; }
+  .end-screen h2 { font-size: 28px; margin: 8px 0 4px; }
+  .waiting-msg { text-align: center; padding: 30px; font-style: italic; color: #6b5f4a; }
+
+  ::selection { background: var(--gold); color: white; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+
+  // ================= SUPABASE CONNECTION =================
+  const SUPABASE_URL = 'https://yuvpcfzawiwmlwszcdsw.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_BJukDSVY2TCYqXR2YWINYg_thYr2wTi';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // ================= CONSTANTS =================
+  const PLAYER_STYLES = [
+    { key:'crimson', color:'#8C2F2F', name:'House Crimson', sigil:'\u2694' },
+    { key:'forest',  color:'#3E5C42', name:'House Verdant', sigil:'\u269C' },
+    { key:'royal',   color:'#2F4A6B', name:'House Azure',   sigil:'\u265B' },
+    { key:'gold',    color:'#B8862E', name:'House Solar',   sigil:'\u2726' }
+  ];
+  const HEX_SIZE = 34;
+  const MAX_ROUNDS = 40;
+  const CAPITAL_GOLD_FLAT = 3;
+  const MAP_SIZE_TO_RADIUS = { 19:2, 37:3, 61:4, 91:5 };
+
+  const DEFAULT_SETTINGS = {
+    mapSize: 37,
+    barracksTroopBonus: [1,2,4],
+    barracksAttackBonus: [1,2,3],
+    wallDefense: [1,2,3],
+    fortDefense: [2,4,6],
+    goldMineOutput: [2,4,7],
+    ironMineOutput: [2,4,7],
+    costs: { goldmine:5, ironmine:5, barracks:6, wall:4, fort:8 }
+  };
+
+  const BUILDING_INFO = {
+    goldmine: { label:'Gold Mine', abbr:'G' },
+    ironmine: { label:'Iron Mine', abbr:'I' },
+    barracks: { label:'Barracks', abbr:'B' }
+  };
+
+  function upgradeCost(baseCost){ return Math.ceil(baseCost * 1.5); }
+  function costForLevel(baseCost, targetLevel){ return targetLevel <= 1 ? baseCost : upgradeCost(baseCost); }
+
+  function cornerCoords(R){ return [ [R,0], [0,R], [-R,R], [-R,0], [0,-R], [R,-R] ]; }
+  const CAPITAL_INDEX_MAP_BY_COUNT = { 2:[0,3], 3:[0,2,4], 4:[0,1,3,4] };
+  const DIRECTIONS = [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
+
+  function hexKey(q,r){ return q+','+r; }
+
+  function buildMap(R){
+    const hexes = {};
+    for(let q=-R;q<=R;q++){
+      for(let r=-R;r<=R;r++){
+        const s = -q-r;
+        if (Math.abs(s) <= R){
+          hexes[hexKey(q,r)] = { q, r, owner: null, troops: 0, capital: false, building: null, buildingLevel: 0, wallLevel: 0, fortLevel: 0 };
+        }
+      }
+    }
+    return hexes;
+  }
+
+  function neighbors(q,r,radius){
+    return DIRECTIONS.map(d => [q+d[0], r+d[1]]).filter(([nq,nr]) =>
+      Math.abs(nq) <= radius && Math.abs(nr) <= radius && Math.abs(-nq-nr) <= radius
+    );
+  }
+
+  function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+
+  function genRoomCode(){
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    let c = '';
+    for(let i=0;i<5;i++) c += chars[randInt(0,chars.length-1)];
+    return c;
+  }
+
+  function uid(){ return Math.random().toString(36).slice(2,10); }
+
+  // ================= STATE =================
+  let me = { id: uid(), name: '', styleKey: null };
+  let roomCode = null;
+  let room = null;
+  let selectedAttackOrigin = null;
+  let pendingAttackTarget = null;
+  let commitAmount = 0;
+  let managementMode = 'troops';
+  let selectedManageHex = null;
+  let joinError = '';
+  let view = 'landing';
+  let lobbySettings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+
+  // ================= STORAGE (Supabase table: hex_rooms, columns: code text, state jsonb) =================
+  async function createRoomBlob(data){
+    for (let attempt = 0; attempt < 5; attempt++){
+      const code = genRoomCode();
+      const { data: row, error } = await supabase.from('hex_rooms').insert({ code, state: data }).select().single();
+      if (!error) return code;
+      if (error.code !== '23505') throw new Error(error.message || 'Could not create room');
+    }
+    throw new Error('Could not generate a free room code -- please try again.');
+  }
+  async function loadRoom(code){
+    try{
+      const { data, error } = await supabase.from('hex_rooms').select('state').eq('code', code).maybeSingle();
+      if (error || !data) return null;
+      return data.state;
+    }catch(e){ return null; }
+  }
+  async function saveRoom(r){
+    try{
+      const { error } = await supabase.from('hex_rooms').update({ state: r }).eq('code', r.code);
+      return !error;
+    }catch(e){ console.error('save failed', e); return false; }
+  }
+
+  // ================= GAME SETUP =================
+  function initGame(r){
+    const radius = MAP_SIZE_TO_RADIUS[r.settings.mapSize] || 3;
+    const map = buildMap(radius);
+    const corners = cornerCoords(radius);
+    const idxs = CAPITAL_INDEX_MAP_BY_COUNT[r.players.length] || CAPITAL_INDEX_MAP_BY_COUNT[4];
+
+    r.players.forEach((p, i) => {
+      const [cq, cr] = corners[idxs[i]];
+      const key = hexKey(cq,cr);
+      map[key].owner = p.id;
+      map[key].troops = 6;
+      map[key].capital = true;
+    });
+
+    Object.values(map).forEach(h => { if (!h.owner) h.troops = randInt(1,3); });
+
+    r.radius = radius;
+    r.map = map;
+    r.status = 'playing';
+    r.turnOrder = r.players.map(p=>p.id);
+    r.currentIndex = 0;
+    r.round = 1;
+    r.phase = 'management';
+    r.playerResources = {};
+    r.players.forEach(p => { r.playerResources[p.id] = { gold: 0, iron: 0 }; });
+    r.log = [];
+    r.winner = null;
+
+    collectResourcesForCurrentPlayer(r, true);
+  }
+
+  function collectResourcesForCurrentPlayer(r, isFirstTurn){
+    const pid = r.turnOrder[r.currentIndex];
+    const player = playerById(r, pid);
+    const owned = Object.values(r.map).filter(h=>h.owner===pid);
+
+    let goldGain = 0, ironGain = 0;
+    owned.forEach(h=>{
+      if (h.capital) goldGain += CAPITAL_GOLD_FLAT;
+      if (h.building === 'goldmine') goldGain += r.settings.goldMineOutput[h.buildingLevel-1] || 0;
+      if (h.building === 'ironmine') ironGain += r.settings.ironMineOutput[h.buildingLevel-1] || 0;
+    });
+    const res = r.playerResources[pid] || { gold:0, iron:0 };
+    res.gold += goldGain;
+    res.iron += ironGain;
+    r.playerResources[pid] = res;
+
+    let troopGain = Math.max(1, Math.floor(owned.length/3));
+    owned.forEach(h=>{ if (h.building === 'barracks') troopGain += r.settings.barracksTroopBonus[h.buildingLevel-1] || 0; });
+    r.reinforcePool = troopGain;
+    r.phase = 'management';
+
+    r.log.unshift((isFirstTurn ? 'The council convenes. ' : '') + player.name + ' collects ' + goldGain + ' gold, ' + ironGain + ' iron, and ' + troopGain + ' troop' + (troopGain===1?'':'s') + ' for round ' + r.round + '.');
+  }
+
+  function styleOf(key){ return PLAYER_STYLES.find(s=>s.key===key); }
+  function playerById(r, id){ return r.players.find(p=>p.id===id); }
+  function activePlayers(r){ return r.turnOrder.filter(pid => Object.values(r.map).some(h=>h.owner===pid)); }
+
+  function nextTurn(r){
+    const active = activePlayers(r);
+    if (active.length <= 1){
+      r.status = 'ended';
+      r.winner = active[0] || null;
+      r.log.unshift(active[0] ? (playerById(r,active[0]).name + ' stands alone. The realm is theirs.') : 'The realm lies in ruin.');
+      return;
+    }
+    let idx = r.currentIndex;
+    let tries = 0;
+    do{ idx = (idx+1) % r.turnOrder.length; tries++; } while(!active.includes(r.turnOrder[idx]) && tries < r.turnOrder.length+1);
+
+    if (idx <= r.currentIndex){
+      r.round += 1;
+      if (r.round > MAX_ROUNDS){
+        let best = null, bestCount = -1;
+        active.forEach(pid=>{
+          const c = Object.values(r.map).filter(h=>h.owner===pid).length;
+          if (c>bestCount){ bestCount=c; best=pid; }
+        });
+        r.status = 'ended';
+        r.winner = best;
+        r.log.unshift('The ' + MAX_ROUNDS + 'th round ends. ' + playerById(r,best).name + ' claims the most land and the crown.');
+        return;
+      }
+    }
+    r.currentIndex = idx;
+    collectResourcesForCurrentPlayer(r, false);
+  }
+
+  // ================= COMBAT (deterministic -- no randomness) =================
+  function resolveAttack(r, fromKey, toKey, committed){
+    const from = r.map[fromKey];
+    const to = r.map[toKey];
+    const wallBonus = to.wallLevel > 0 ? (r.settings.wallDefense[to.wallLevel-1] || 0) : 0;
+    const fortBonus = to.fortLevel > 0 ? (r.settings.fortDefense[to.fortLevel-1] || 0) : 0;
+    const capitalBonus = to.capital ? 1 : 0;
+    const defenseStrength = to.troops + capitalBonus + wallBonus + fortBonus;
+
+    const barracksAtkBonus = from.building === 'barracks' ? (r.settings.barracksAttackBonus[from.buildingLevel-1] || 0) : 0;
+    const attackStrength = committed + barracksAtkBonus;
+
+    const attacker = playerById(r, from.owner);
+    const defenderName = to.owner ? playerById(r,to.owner).name : 'the wilds';
+
+    if (attackStrength > defenseStrength){
+      // Survivors are based on real troops committed, not the (possibly Barracks-boosted)
+      // Attack Strength -- the bonus represents better-equipped soldiers winning the
+      // exchange, not extra bodies left to hold the captured hex.
+      const survivors = Math.max(1, committed - defenseStrength);
+      let newBuilding = to.building, newLevel = to.buildingLevel;
+      if (newBuilding){ newLevel -= 1; if (newLevel <= 0){ newBuilding = null; newLevel = 0; } }
+      const newWall = to.wallLevel > 0 ? to.wallLevel - 1 : 0;
+      const newFort = to.fortLevel > 0 ? to.fortLevel - 1 : 0;
+
+      to.owner = from.owner;
+      to.troops = survivors;
+      to.capital = false;
+      to.building = newBuilding;
+      to.buildingLevel = newLevel;
+      to.wallLevel = newWall;
+      to.fortLevel = newFort;
+      from.troops -= committed;
+      const bonusNote = barracksAtkBonus ? (' (' + committed + ' troops +' + barracksAtkBonus + ' Barracks)') : '';
+      r.log.unshift(attacker.name + ' storms (' + to.q + ',' + to.r + ') with ' + attackStrength + bonusNote + ' against ' + defenderName + "'s " + defenseStrength + ' -- captured, ' + survivors + ' troops hold it now.');
+    } else {
+      from.troops -= committed;
+      to.troops = Math.max(1, to.troops - committed);
+      const bonusNote2 = barracksAtkBonus ? (' (' + committed + ' troops +' + barracksAtkBonus + ' Barracks)') : '';
+      r.log.unshift(attacker.name + "'s " + attackStrength + bonusNote2 + ' troops fail to break ' + defenderName + "'s " + defenseStrength + ' at (' + to.q + ',' + to.r + ') -- both sides take losses, buildings untouched.');
+    }
+  }
+
+  // ================= RENDER: LAYOUT MATH =================
+  function hexCenter(q,r){
+    const x = HEX_SIZE * Math.sqrt(3) * (q + r/2);
+    const y = HEX_SIZE * 1.5 * r;
+    return [x,y];
+  }
+  function hexPoints(cx,cy){
+    const pts = [];
+    for(let i=0;i<6;i++){
+      const angle = Math.PI/180 * (60*i - 30);
+      pts.push([cx+HEX_SIZE*Math.cos(angle), cy+HEX_SIZE*Math.sin(angle)]);
+    }
+    return pts.map(p=>p.join(',')).join(' ');
+  }
+
+  // ================= EVENT HANDLERS =================
+  window.__hd = {};
+
+  window.__hd.setName = (v) => { me.name = v; };
+  window.__hd.pickStyle = (k) => { me.styleKey = k; render(); };
+
+  window.__hd.setSetting = (path, value) => {
+    const num = parseFloat(value);
+    if (isNaN(num)) return;
+    const parts = path.split('.');
+    let obj = lobbySettings;
+    for (let i=0;i<parts.length-1;i++){ obj = obj[parts[i]]; }
+    obj[parts[parts.length-1]] = num;
+  };
+  window.__hd.setMapSize = (v) => { lobbySettings.mapSize = parseInt(v,10); };
+
+  window.__hd.createRoom = async () => {
+    joinError = '';
+    if (!me.name.trim()) { joinError = 'Enter your name first.'; render(); return; }
+    if (!me.styleKey) { joinError = 'Choose a house banner.'; render(); return; }
+    const draft = {
+      hostId: me.id,
+      players: [{ id: me.id, name: me.name.trim(), styleKey: me.styleKey }],
+      status: 'lobby',
+      settings: JSON.parse(JSON.stringify(lobbySettings)),
+      map: null, log: []
+    };
+    let id;
+    try{
+      id = await createRoomBlob(draft);
+    }catch(e){
+      joinError = 'Could not reach the game server: ' + (e && e.message ? e.message : 'unknown error') + '. Check your connection and try again.';
+      render();
+      return;
+    }
+    draft.code = id;
+    await saveRoom(draft);
+    roomCode = id;
+    room = draft;
+    view = 'lobby';
+    render();
+  };
+
+  window.__hd.setJoinCode = (v) => { window.__hd._joinCodeVal = v.toUpperCase().trim(); };
+
+  window.__hd.joinRoom = async () => {
+    joinError = '';
+    const code = (window.__hd._joinCodeVal || '').trim();
+    if (!me.name.trim()) { joinError = 'Enter your name first.'; render(); return; }
+    if (!me.styleKey) { joinError = 'Choose a house banner.'; render(); return; }
+    if (!code) { joinError = 'Enter a room code.'; render(); return; }
+    const r = await loadRoom(code);
+    if (!r) { joinError = 'No such room found -- double check the code.'; render(); return; }
+    if (r.status !== 'lobby') { joinError = 'That campaign has already begun.'; render(); return; }
+    if (r.players.length >= 4) { joinError = 'That room is full.'; render(); return; }
+    if (r.players.some(p=>p.styleKey===me.styleKey)) { joinError = 'That house banner is taken -- pick another.'; render(); return; }
+    r.players.push({ id: me.id, name: me.name.trim(), styleKey: me.styleKey });
+    const ok = await saveRoom(r);
+    if (!ok) { joinError = 'Could not reach the game server -- check your connection and try again.'; render(); return; }
+    roomCode = code;
+    room = r;
+    view = 'lobby';
+    render();
+  };
+
+  window.__hd.startGame = async () => {
+    const fresh = await loadRoom(roomCode);
+    if (!fresh || fresh.players.length < 2) return;
+    initGame(fresh);
+    view = 'game';
+    room = fresh;
+    await saveRoom(fresh);
+    render();
+  };
+
+  window.__hd.refreshLobby = async () => {
+    const fresh = await loadRoom(roomCode);
+    if (fresh){ room = fresh; if (fresh.status === 'playing') view = 'game'; render(); }
+  };
+
+  function isMyTurn(){ return room && room.status==='playing' && room.turnOrder[room.currentIndex] === me.id; }
+
+  window.__hd.setManagementMode = (mode) => { managementMode = mode; selectedManageHex = null; render(); };
+
+  window.__hd.placeReinforcement = async (key) => {
+    const fresh = await loadRoom(roomCode);
+    room = fresh;
+    if (!isMyTurn() || room.phase !== 'management' || room.reinforcePool <= 0) { render(); return; }
+    const h = room.map[key];
+    if (h.owner !== me.id) { render(); return; }
+    h.troops += 1;
+    room.reinforcePool -= 1;
+    await saveRoom(room);
+    render();
+  };
+
+  window.__hd.selectManageHex = (key) => {
+    const h = room.map[key];
+    if (h.owner !== me.id) return;
+    selectedManageHex = (selectedManageHex === key) ? null : key;
+    render();
+  };
+
+  window.__hd.buildPrimary = async (key, type) => {
+    const fresh = await loadRoom(roomCode);
+    room = fresh;
+    if (!isMyTurn() || room.phase !== 'management') { render(); return; }
+    const h = room.map[key];
+    if (!h || h.owner !== me.id || h.capital || h.building) { render(); return; }
+    const cost = room.settings.costs[type];
+    const res = room.playerResources[me.id];
+    if (res.gold < cost) { render(); return; }
+    res.gold -= cost;
+    h.building = type;
+    h.buildingLevel = 1;
+    await saveRoom(room);
+    render();
+  };
+
+  window.__hd.upgradePrimary = async (key) => {
+    const fresh = await loadRoom(roomCode);
+    room = fresh;
+    if (!isMyTurn() || room.phase !== 'management') { render(); return; }
+    const h = room.map[key];
+    if (!h || h.owner !== me.id || !h.building || h.buildingLevel >= 3) { render(); return; }
+    const base = room.settings.costs[h.building];
+    const cost = costForLevel(base, h.buildingLevel + 1);
+    const res = room.playerResources[me.id];
+    if (res.gold < cost) { render(); return; }
+    res.gold -= cost;
+    h.buildingLevel += 1;
+    await saveRoom(room);
+    render();
+  };
+
+  window.__hd.buildWall = async (key) => {
+    const fresh = await loadRoom(roomCode);
+    room = fresh;
+    if (!isMyTurn() || room.phase !== 'management') { render(); return; }
+    const h = room.map[key];
+    if (!h || h.owner !== me.id || h.wallLevel >= 3) { render(); return; }
+    const base = room.settings.costs.wall;
+    const cost = costForLevel(base, h.wallLevel + 1);
+    const res = room.playerResources[me.id];
+    if (res.iron < cost) { render(); return; }
+    res.iron -= cost;
+    h.wallLevel += 1;
+    await saveRoom(room);
+    render();
+  };
+
+  window.__hd.buildFort = async (key) => {
+    const fresh = await loadRoom(roomCode);
+    room = fresh;
+    if (!isMyTurn() || room.phase !== 'management') { render(); return; }
+    const h = room.map[key];
+    if (!h || h.owner !== me.id || h.fortLevel >= 3) { render(); return; }
+    const base = room.settings.costs.fort;
+    const cost = costForLevel(base, h.fortLevel + 1);
+    const res = room.playerResources[me.id];
+    if (res.iron < cost) { render(); return; }
+    res.iron -= cost;
+    h.fortLevel += 1;
+    await saveRoom(room);
+    render();
+  };
+
+  window.__hd.proceedToAttack = async () => {
+    const fresh = await loadRoom(roomCode);
+    room = fresh;
+    if (!isMyTurn() || room.reinforcePool > 0) { render(); return; }
+    room.phase = 'attack';
+    selectedManageHex = null;
+    await saveRoom(room);
+    render();
+  };
+
+  window.__hd.selectHexForAttack = async (key) => {
+    if (!isMyTurn() || room.phase !== 'attack') return;
+    if (pendingAttackTarget){ return; }
+    const h = room.map[key];
+    if (selectedAttackOrigin === null){
+      if (h.owner === me.id && h.troops > 1){ selectedAttackOrigin = key; render(); }
+      return;
+    }
+    if (selectedAttackOrigin === key){ selectedAttackOrigin = null; render(); return; }
+    const origin = room.map[selectedAttackOrigin];
+    const isAdjacent = neighbors(origin.q, origin.r, room.radius).some(([nq,nr]) => hexKey(nq,nr) === key);
+    if (!isAdjacent){
+      if (h.owner === me.id && h.troops > 1){ selectedAttackOrigin = key; render(); }
+      return;
+    }
+    if (h.owner === me.id) { selectedAttackOrigin = key; render(); return; }
+
+    pendingAttackTarget = key;
+    commitAmount = Math.max(1, origin.troops - 1);
+    render();
+  };
+
+  window.__hd.adjustCommit = (delta) => {
+    if (!selectedAttackOrigin) return;
+    const origin = room.map[selectedAttackOrigin];
+    const max = Math.max(1, origin.troops - 1);
+    commitAmount = Math.min(max, Math.max(1, commitAmount + delta));
+    render();
+  };
+
+  window.__hd.cancelAttackSelection = () => { pendingAttackTarget = null; commitAmount = 0; render(); };
+
+  window.__hd.confirmAttack = async () => {
+    if (!selectedAttackOrigin || !pendingAttackTarget) return;
+    const fresh = await loadRoom(roomCode);
+    room = fresh;
+    if (!isMyTurn() || room.phase !== 'attack') { selectedAttackOrigin = null; pendingAttackTarget = null; render(); return; }
+    const freshOrigin = room.map[selectedAttackOrigin];
+    if (!freshOrigin || freshOrigin.owner !== me.id || freshOrigin.troops <= 1) {
+      selectedAttackOrigin = null; pendingAttackTarget = null; render(); return;
+    }
+    const maxCommit = freshOrigin.troops - 1;
+    const committed = Math.min(commitAmount, maxCommit);
+    resolveAttack(room, selectedAttackOrigin, pendingAttackTarget, committed);
+    selectedAttackOrigin = null;
+    pendingAttackTarget = null;
+    commitAmount = 0;
+    await saveRoom(room);
+    render();
+  };
+
+  window.__hd.endTurn = async () => {
+    const fresh = await loadRoom(roomCode);
+    room = fresh;
+    if (!isMyTurn()) { render(); return; }
+    selectedAttackOrigin = null;
+    pendingAttackTarget = null;
+    commitAmount = 0;
+    selectedManageHex = null;
+    managementMode = 'troops';
+    nextTurn(room);
+    await saveRoom(room);
+    render();
+  };
+
+  window.__hd.copyCode = () => { if (roomCode) navigator.clipboard && navigator.clipboard.writeText(roomCode); };
+
+  // ================= RENDER =================
+  function renderSettingsEditor(){
+    const s = lobbySettings;
+    const mapOptions = [19,37,61,91].map(n => '<option value="'+n+'" '+(s.mapSize===n?'selected':'')+'>'+n+' tiles '+(n===37?'(default)':'')+'</option>').join('');
+    return '' +
+      '<details class="settings-group">' +
+        '<summary>Game Settings (host only -- adjust before starting)</summary>' +
+        '<div style="margin-top:10px;">' +
+          '<label class="field-label">Map Size</label>' +
+          '<select onchange="__hd.setMapSize(this.value)">' + mapOptions + '</select>' +
+
+          '<div class="settings-note">Barracks -- extra troops per round, and attack bonus when attacking from this hex, by level</div>' +
+          '<div class="settings-row"><span class="col-head"></span><span class="col-head">L1</span><span class="col-head">L2</span><span class="col-head">L3</span></div>' +
+          '<div class="settings-row">' +
+            '<span>Troop bonus /round</span>' +
+            '<input type="number" min="0" value="'+s.barracksTroopBonus[0]+'" oninput="__hd.setSetting(\'barracksTroopBonus.0\', this.value)">' +
+            '<input type="number" min="0" value="'+s.barracksTroopBonus[1]+'" oninput="__hd.setSetting(\'barracksTroopBonus.1\', this.value)">' +
+            '<input type="number" min="0" value="'+s.barracksTroopBonus[2]+'" oninput="__hd.setSetting(\'barracksTroopBonus.2\', this.value)">' +
+          '</div>' +
+          '<div class="settings-row">' +
+            '<span>Attack bonus</span>' +
+            '<input type="number" min="0" value="'+s.barracksAttackBonus[0]+'" oninput="__hd.setSetting(\'barracksAttackBonus.0\', this.value)">' +
+            '<input type="number" min="0" value="'+s.barracksAttackBonus[1]+'" oninput="__hd.setSetting(\'barracksAttackBonus.1\', this.value)">' +
+            '<input type="number" min="0" value="'+s.barracksAttackBonus[2]+'" oninput="__hd.setSetting(\'barracksAttackBonus.2\', this.value)">' +
+          '</div>' +
+
+          '<div class="settings-note">Defense bonus -- Wall / Fortification, by level</div>' +
+          '<div class="settings-row"><span class="col-head"></span><span class="col-head">L1</span><span class="col-head">L2</span><span class="col-head">L3</span></div>' +
+          '<div class="settings-row">' +
+            '<span>Wall</span>' +
+            '<input type="number" min="0" value="'+s.wallDefense[0]+'" oninput="__hd.setSetting(\'wallDefense.0\', this.value)">' +
+            '<input type="number" min="0" value="'+s.wallDefense[1]+'" oninput="__hd.setSetting(\'wallDefense.1\', this.value)">' +
+            '<input type="number" min="0" value="'+s.wallDefense[2]+'" oninput="__hd.setSetting(\'wallDefense.2\', this.value)">' +
+          '</div>' +
+          '<div class="settings-row">' +
+            '<span>Fortification</span>' +
+            '<input type="number" min="0" value="'+s.fortDefense[0]+'" oninput="__hd.setSetting(\'fortDefense.0\', this.value)">' +
+            '<input type="number" min="0" value="'+s.fortDefense[1]+'" oninput="__hd.setSetting(\'fortDefense.1\', this.value)">' +
+            '<input type="number" min="0" value="'+s.fortDefense[2]+'" oninput="__hd.setSetting(\'fortDefense.2\', this.value)">' +
+          '</div>' +
+
+          '<div class="settings-note">Mine output per round -- Gold / Iron, by level</div>' +
+          '<div class="settings-row"><span class="col-head"></span><span class="col-head">L1</span><span class="col-head">L2</span><span class="col-head">L3</span></div>' +
+          '<div class="settings-row">' +
+            '<span>Gold Mine</span>' +
+            '<input type="number" min="0" value="'+s.goldMineOutput[0]+'" oninput="__hd.setSetting(\'goldMineOutput.0\', this.value)">' +
+            '<input type="number" min="0" value="'+s.goldMineOutput[1]+'" oninput="__hd.setSetting(\'goldMineOutput.1\', this.value)">' +
+            '<input type="number" min="0" value="'+s.goldMineOutput[2]+'" oninput="__hd.setSetting(\'goldMineOutput.2\', this.value)">' +
+          '</div>' +
+          '<div class="settings-row">' +
+            '<span>Iron Mine</span>' +
+            '<input type="number" min="0" value="'+s.ironMineOutput[0]+'" oninput="__hd.setSetting(\'ironMineOutput.0\', this.value)">' +
+            '<input type="number" min="0" value="'+s.ironMineOutput[1]+'" oninput="__hd.setSetting(\'ironMineOutput.1\', this.value)">' +
+            '<input type="number" min="0" value="'+s.ironMineOutput[2]+'" oninput="__hd.setSetting(\'ironMineOutput.2\', this.value)">' +
+          '</div>' +
+
+          '<div class="settings-note">Construction cost (Level 1) -- upgrades cost 1.5x this, fixed</div>' +
+          '<div class="settings-row cost-row"><span>Gold Mine (gold)</span><input type="number" min="1" value="'+s.costs.goldmine+'" oninput="__hd.setSetting(\'costs.goldmine\', this.value)"></div>' +
+          '<div class="settings-row cost-row"><span>Iron Mine (gold)</span><input type="number" min="1" value="'+s.costs.ironmine+'" oninput="__hd.setSetting(\'costs.ironmine\', this.value)"></div>' +
+          '<div class="settings-row cost-row"><span>Barracks (gold)</span><input type="number" min="1" value="'+s.costs.barracks+'" oninput="__hd.setSetting(\'costs.barracks\', this.value)"></div>' +
+          '<div class="settings-row cost-row"><span>Wall (iron)</span><input type="number" min="1" value="'+s.costs.wall+'" oninput="__hd.setSetting(\'costs.wall\', this.value)"></div>' +
+          '<div class="settings-row cost-row"><span>Fortification (iron)</span><input type="number" min="1" value="'+s.costs.fort+'" oninput="__hd.setSetting(\'costs.fort\', this.value)"></div>' +
+        '</div>' +
+      '</details>';
+  }
+
+  function renderLanding(){
+    const swatches = PLAYER_STYLES.map(function(s){
+      return '<div class="swatch '+(me.styleKey===s.key?'selected':'')+'" style="background:'+s.color+'" title="'+s.name+'" onclick="__hd.pickStyle(\''+s.key+'\')"></div>';
+    }).join('');
+
+    return '' +
+      '<div class="seal-header">' +
+        '<div class="crest">\u2694</div>' +
+        '<h1>Hex Dominion</h1>' +
+        '<div class="subtitle">A campaign of banners, garrisons, and borders drawn in ink</div>' +
+      '</div>' +
+      '<div class="lobby-wrap panel">' +
+        '<label class="field-label">Your name</label>' +
+        '<input type="text" maxlength="18" oninput="__hd.setName(this.value)" placeholder="Lord Commander of..." value="'+me.name+'">' +
+
+        '<label class="field-label">Choose your house banner</label>' +
+        '<div class="color-pick">'+swatches+'</div>' +
+
+        (joinError ? '<div class="error-text">'+joinError+'</div>' : '') +
+
+        renderSettingsEditor() +
+
+        '<button class="full" onclick="__hd.createRoom()">Found a New Realm</button>' +
+
+        '<div class="divider">or join an existing campaign</div>' +
+
+        '<label class="field-label">Enter the room code your friend sent you</label>' +
+        '<input type="text" class="code-input" maxlength="5" oninput="__hd.setJoinCode(this.value)" placeholder="ABCDE">' +
+        '<button class="full secondary" onclick="__hd.joinRoom()">Join Campaign</button>' +
+      '</div>';
+  }
+
+  function renderLobby(){
+    const roster = room.players.map(function(p){
+      const s = styleOf(p.styleKey);
+      return '<li><span class="dot" style="background:'+s.color+'"></span> '+p.name+' -- <em>'+s.name+'</em> '+(p.id===room.hostId ? ' <span class="mono" style="font-size:11px;color:#8a7c5f">(host)</span>':'')+'</li>';
+    }).join('');
+
+    const isHost = room.hostId === me.id;
+    const canStart = room.players.length >= 2;
+
+    return '' +
+      '<div class="lobby-wrap panel">' +
+        '<div class="room-code-display">' +
+          '<div class="field-label">Send this room code to your friends</div>' +
+          '<div class="code mono" onclick="__hd.copyCode()" title="Click to copy">'+room.code+'</div>' +
+        '</div>' +
+        '<h3 style="margin-bottom:4px;">Gathered Houses ('+room.players.length+'/4)</h3>' +
+        '<ul class="player-roster">'+roster+'</ul>' +
+        '<p style="font-size:13px;color:#6b5f4a;">Map size: '+room.settings.mapSize+' tiles</p>' +
+        (isHost
+          ? '<button class="full" '+(canStart?'':'disabled')+' onclick="__hd.startGame()">'+(canStart? 'Begin the Campaign' : 'Waiting for at least 2 houses...')+'</button>'
+          : '<div class="waiting-msg">Waiting for the host to begin the campaign...</div>'
+        ) +
+        '<button class="full secondary" style="margin-top:10px;" onclick="__hd.refreshLobby()">Refresh</button>' +
+      '</div>';
+  }
+
+  function renderBuildOptions(h, key){
+    const res = room.playerResources[me.id];
+    let html = '';
+
+    if (!h.capital && !h.building){
+      html += Object.keys(BUILDING_INFO).map(function(type){
+        const info = BUILDING_INFO[type];
+        const cost = room.settings.costs[type];
+        const afford = res.gold >= cost;
+        return '' +
+          '<div class="build-option">' +
+            '<div class="row">' +
+              '<span class="name">Build '+info.label+'</span>' +
+              '<button class="tiny" '+(afford?'':'disabled')+' onclick="__hd.buildPrimary(\''+key+'\',\''+type+'\')">Build</button>' +
+            '</div>' +
+            '<div class="cost">'+cost+' Gold</div>' +
+          '</div>';
+      }).join('');
+    } else if (h.building && h.buildingLevel < 3){
+      const info = BUILDING_INFO[h.building];
+      const base = room.settings.costs[h.building];
+      const cost = costForLevel(base, h.buildingLevel+1);
+      const afford = res.gold >= cost;
+      html += '' +
+        '<div class="build-option">' +
+          '<div class="row">' +
+            '<span class="name">'+info.label+' \u2192 Level '+(h.buildingLevel+1)+'</span>' +
+            '<button class="tiny" '+(afford?'':'disabled')+' onclick="__hd.upgradePrimary(\''+key+'\')">Upgrade</button>' +
+          '</div>' +
+          '<div class="cost">'+cost+' Gold</div>' +
+        '</div>';
+    } else if (h.building && h.buildingLevel >= 3){
+      html += '<div class="build-option"><div class="name">'+BUILDING_INFO[h.building].label+' -- Max Level</div></div>';
+    } else if (h.capital){
+      html += '<div class="build-option"><div class="name">Capital -- no primary building slot</div></div>';
+    }
+
+    if (h.wallLevel < 3){
+      const cost = costForLevel(room.settings.costs.wall, h.wallLevel+1);
+      const afford = res.iron >= cost;
+      html += '' +
+        '<div class="build-option">' +
+          '<div class="row">' +
+            '<span class="name">Wall \u2192 Level '+(h.wallLevel+1)+'</span>' +
+            '<button class="tiny" '+(afford?'':'disabled')+' onclick="__hd.buildWall(\''+key+'\')">Build</button>' +
+          '</div>' +
+          '<div class="cost">'+cost+' Iron</div>' +
+        '</div>';
+    } else {
+      html += '<div class="build-option"><div class="name">Wall -- Max Level</div></div>';
+    }
+
+    if (h.fortLevel < 3){
+      const cost = costForLevel(room.settings.costs.fort, h.fortLevel+1);
+      const afford = res.iron >= cost;
+      html += '' +
+        '<div class="build-option">' +
+          '<div class="row">' +
+            '<span class="name">Fortification \u2192 Level '+(h.fortLevel+1)+'</span>' +
+            '<button class="tiny" '+(afford?'':'disabled')+' onclick="__hd.buildFort(\''+key+'\')">Build</button>' +
+          '</div>' +
+          '<div class="cost">'+cost+' Iron</div>' +
+        '</div>';
+    } else {
+      html += '<div class="build-option"><div class="name">Fortification -- Max Level</div></div>';
+    }
+
+    return html;
+  }
+
+  function renderGame(){
+    if (room.status === 'ended'){
+      const winner = room.winner ? playerById(room, room.winner) : null;
+      const s = winner ? styleOf(winner.styleKey) : null;
+      return '' +
+        '<div class="panel end-screen">' +
+          '<div class="crest">'+(s ? s.sigil : '\u2691')+'</div>' +
+          '<h2>'+(winner ? (winner.name+' of '+s.name+' reigns victorious') : 'The realm falls to ruin')+'</h2>' +
+          '<p style="color:#6b5f4a;">The campaign concluded after '+room.round+' rounds.</p>' +
+        '</div>';
+    }
+
+    const hexes = Object.values(room.map);
+    const centers = hexes.map(function(h){ return { h: h, c: hexCenter(h.q,h.r) }; });
+    const xs = centers.map(function(o){ return o.c[0]; }), ys = centers.map(function(o){ return o.c[1]; });
+    const minX = Math.min.apply(null,xs)-HEX_SIZE-6, maxX = Math.max.apply(null,xs)+HEX_SIZE+6;
+    const minY = Math.min.apply(null,ys)-HEX_SIZE-6, maxY = Math.max.apply(null,ys)+HEX_SIZE+6;
+    const w = maxX-minX, h2 = maxY-minY;
+
+    const myTurn = isMyTurn();
+
+    const hexSvg = centers.map(function(o){
+      const h = o.h, c = o.c;
+      const cx = c[0], cy = c[1];
+      const pts = hexPoints(cx-minX, cy-minY);
+      let fill = 'var(--neutral-fill)';
+      let stroke = '#8a7c5f';
+      let strokeWidth = 1;
+      if (h.owner){ const s = styleOf(playerById(room,h.owner).styleKey); fill = s.color; }
+      const key = hexKey(h.q,h.r);
+
+      if (myTurn && room.phase==='management' && managementMode==='build' && selectedManageHex===key){ stroke = '#F4E7C1'; strokeWidth = 4; }
+      if (myTurn && room.phase==='attack' && selectedAttackOrigin===key){ stroke = '#F4E7C1'; strokeWidth = 4; }
+      if (myTurn && room.phase==='attack' && pendingAttackTarget===key){ stroke = '#8C2F2F'; strokeWidth = 4; }
+
+      let clickAttr = '';
+      if (myTurn && room.phase==='management' && managementMode==='troops' && h.owner===me.id && room.reinforcePool>0){
+        clickAttr = 'onclick="__hd.placeReinforcement(\''+key+'\')"';
+      } else if (myTurn && room.phase==='management' && managementMode==='build' && h.owner===me.id){
+        clickAttr = 'onclick="__hd.selectManageHex(\''+key+'\')"';
+      } else if (myTurn && room.phase==='attack' && !pendingAttackTarget){
+        clickAttr = 'onclick="__hd.selectHexForAttack(\''+key+'\')"';
+      }
+
+      const textColor = h.owner ? '#FBF6EA' : '#2B2620';
+      const crownIcon = h.capital ? '<text x="'+(cx-minX)+'" y="'+(cy-minY-15)+'" text-anchor="middle" font-size="12" class="crown">\u265B</text>' : '';
+      let buildingAbbr = '';
+      if (h.building) buildingAbbr = BUILDING_INFO[h.building].abbr + h.buildingLevel;
+      const fortifyMarks = (h.wallLevel>0 ? 'W'+h.wallLevel : '') + (h.fortLevel>0 ? (h.wallLevel>0?' ':'')+'F'+h.fortLevel : '');
+
+      return '' +
+        '<g class="hex" '+clickAttr+'>' +
+          '<polygon points="'+pts+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="'+strokeWidth+'" opacity="'+(h.owner?1:0.85)+'"/>' +
+          crownIcon +
+          (buildingAbbr ? '<text x="'+(cx-minX)+'" y="'+(cy-minY-6)+'" text-anchor="middle" font-size="9" fill="'+textColor+'" class="hex-building">'+buildingAbbr+'</text>' : '') +
+          '<text x="'+(cx-minX)+'" y="'+(cy-minY+7)+'" text-anchor="middle" font-size="14" fill="'+textColor+'" class="hex-troops">'+h.troops+'</text>' +
+          (fortifyMarks ? '<text x="'+(cx-minX)+'" y="'+(cy-minY+18)+'" text-anchor="middle" font-size="8" fill="'+textColor+'">'+fortifyMarks+'</text>' : '') +
+        '</g>';
+    }).join('');
+
+    const roster = room.players.map(function(p){
+      const s = styleOf(p.styleKey);
+      const count = hexes.filter(function(h){ return h.owner===p.id; }).length;
+      const alive = count > 0;
+      const isCurrent = room.turnOrder[room.currentIndex] === p.id;
+      const res = room.playerResources[p.id] || {gold:0,iron:0};
+      return '' +
+        '<div class="roster-row '+(alive?'':'eliminated')+'">' +
+          '<span class="dot" style="background:'+s.color+'"></span>' +
+          '<span class="name">'+p.name+(p.id===me.id?' (you)':'')+'</span>' +
+          '<span class="stat">'+count+' hex \u00b7 '+res.gold+'G '+res.iron+'I</span>' +
+          (isCurrent && alive ? '<span class="active-marker">\u25cf</span>' : '') +
+        '</div>';
+    }).join('');
+
+    const currentPlayer = playerById(room, room.turnOrder[room.currentIndex]);
+    const myResources = room.playerResources[me.id] || {gold:0,iron:0};
+    const logEntries = room.log.slice(0,12).map(function(l){ return '<div class="log-entry">'+l+'</div>'; }).join('');
+
+    let actionBlock = '';
+    if (myTurn && room.phase === 'management'){
+      const modeToggle = '' +
+        '<div class="mode-toggle">' +
+          '<button class="'+(managementMode==='troops'?'active':'secondary')+'" onclick="__hd.setManagementMode(\'troops\')">Place Troops ('+room.reinforcePool+' left)</button>' +
+          '<button class="'+(managementMode==='build'?'active':'secondary')+'" onclick="__hd.setManagementMode(\'build\')">Manage Buildings</button>' +
+        '</div>';
+      let buildPanel = '';
+      if (managementMode==='build'){
+        if (selectedManageHex){
+          const h = room.map[selectedManageHex];
+          buildPanel = '<div style="margin-top:8px;"><p style="font-size:13px;margin:0 0 8px;">Hex ('+h.q+','+h.r+') -- '+h.troops+' troops</p>'+renderBuildOptions(h, selectedManageHex)+'</div>';
+        } else {
+          buildPanel = '<p style="font-size:13px;">Click one of your hexes on the map to build or upgrade.</p>';
+        }
+      } else {
+        buildPanel = '<p style="font-size:13px;">Click your own hexes on the map to place troops.</p>';
+      }
+      actionBlock = '' +
+        '<div class="action-card panel">' +
+          '<h3>Management Phase</h3>' +
+          modeToggle +
+          buildPanel +
+          '<div class="action-buttons" style="margin-top:10px;">' +
+            '<button '+(room.reinforcePool>0?'disabled':'')+' onclick="__hd.proceedToAttack()">Proceed to Attack Phase</button>' +
+          '</div>' +
+        '</div>';
+    } else if (myTurn && room.phase === 'attack'){
+      if (pendingAttackTarget){
+        const origin = room.map[selectedAttackOrigin];
+        const target = room.map[pendingAttackTarget];
+        const wallBonus = target.wallLevel>0 ? (room.settings.wallDefense[target.wallLevel-1]||0) : 0;
+        const fortBonus = target.fortLevel>0 ? (room.settings.fortDefense[target.fortLevel-1]||0) : 0;
+        const defenseStrength = target.troops + (target.capital?1:0) + wallBonus + fortBonus;
+        const barracksAtkBonus = origin.building==='barracks' ? (room.settings.barracksAttackBonus[origin.buildingLevel-1]||0) : 0;
+        const attackStrength = commitAmount + barracksAtkBonus;
+        const maxCommit = Math.max(1, origin.troops - 1);
+        const targetName = target.owner ? playerById(room, target.owner).name : 'the wilds';
+        actionBlock = '' +
+          '<div class="action-card panel">' +
+            '<h3>Commit Your Forces</h3>' +
+            '<p>Attacking ('+target.q+','+target.r+'), held by <strong>'+targetName+'</strong> -- effective defense <strong>'+defenseStrength+'</strong> (troops '+target.troops+(target.capital?' +1 capital':'')+(wallBonus?(' +'+wallBonus+' wall'):'')+(fortBonus?(' +'+fortBonus+' fort'):'')+'). Commit <strong>enough that your Attack Strength exceeds '+defenseStrength+'</strong> to capture; falling short costs you both losses with no gain.</p>' +
+            (barracksAtkBonus ? '<p style="font-size:13px;color:#4a4030;">This hex has a Barracks (Level '+origin.buildingLevel+'), adding <strong>+'+barracksAtkBonus+'</strong> to your Attack Strength on top of committed troops.</p>' : '') +
+            '<div style="display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:6px;">' +
+              '<button class="small secondary" onclick="__hd.adjustCommit(-1)">\u2212</button>' +
+              '<span class="mono" style="font-size:20px;min-width:34px;text-align:center;">'+commitAmount+'</span>' +
+              '<button class="small secondary" onclick="__hd.adjustCommit(1)">+</button>' +
+              '<span style="font-size:12px;color:#8a7c5f;">/ '+maxCommit+' available</span>' +
+            '</div>' +
+            '<p style="text-align:center;font-size:13px;margin-bottom:14px;">Attack Strength: <strong class="mono">'+attackStrength+'</strong>'+(barracksAtkBonus?(' ('+commitAmount+' + '+barracksAtkBonus+' Barracks)'):'')+'</p>' +
+            '<div class="action-buttons">' +
+              '<button onclick="__hd.confirmAttack()">Launch Attack</button>' +
+              '<button class="secondary" onclick="__hd.cancelAttackSelection()">Cancel</button>' +
+            '</div>' +
+          '</div>';
+      } else {
+        actionBlock = '' +
+          '<div class="action-card panel">' +
+            '<h3>March on Your Foes</h3>' +
+            '<p>'+(selectedAttackOrigin ? 'Now click an adjacent enemy or unclaimed hex to attack.' : 'Click one of your hexes (2+ troops) to select it, then click an adjacent hex to attack.')+'</p>' +
+            '<div class="action-buttons">' +
+              '<button onclick="__hd.endTurn()">End Turn</button>' +
+            '</div>' +
+          '</div>';
+      }
+    } else {
+      actionBlock = '<div class="action-card panel"><p style="margin:0;">Awaiting '+currentPlayer.name+"'s move...</p></div>";
+    }
+
+    return '' +
+      '<div class="game-wrap">' +
+        '<div class="map-panel panel">' +
+          '<svg viewBox="0 0 '+w+' '+h2+'">'+hexSvg+'</svg>' +
+        '</div>' +
+        '<div class="side-panel">' +
+          '<div class="turn-banner panel">' +
+            '<div class="who display">'+currentPlayer.name+(currentPlayer.id===me.id?' (You)':'')+'</div>' +
+            '<div class="phase">Round '+room.round+' -- '+room.phase+' phase</div>' +
+            '<div class="resource-row"><span class="mono">'+myResources.gold+' Gold</span><span class="mono">'+myResources.iron+' Iron</span></div>' +
+          '</div>' +
+          '<div class="roster-card panel">' +
+            '<h3>Houses</h3>' +
+            roster +
+          '</div>' +
+          actionBlock +
+          '<div class="log-card panel">' +
+            '<h3>Chronicle</h3>' +
+            logEntries +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function render(){
+    const app = document.getElementById('app');
+    if (view === 'landing'){
+      app.innerHTML = renderLanding();
+    } else if (view === 'lobby'){
+      app.innerHTML = '<div class="seal-header"><div class="crest">\u2694</div><h1>Hex Dominion</h1></div>' + renderLobby();
+    } else if (view === 'game'){
+      app.innerHTML = '<div class="seal-header" style="margin-bottom:16px;"><h1 style="font-size:22px;">Hex Dominion</h1></div>' + renderGame();
+    }
+  }
+
+  render();
+  setInterval(async function(){
+    if (!roomCode) return;
+    if (view === 'game'){
+      const fresh = await loadRoom(roomCode);
+      if (fresh) { room = fresh; render(); }
+    } else if (view === 'lobby'){
+      const fresh = await loadRoom(roomCode);
+      if (fresh){ room = fresh; if (fresh.status==='playing'){ view='game'; } render(); }
+    }
+  }, 1800);
+
+})();
+</script>
+</body>
+</html>
